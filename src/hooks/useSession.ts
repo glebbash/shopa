@@ -1,6 +1,6 @@
 import { Session } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
-import { supabase } from "../supabase";
+import { supabase } from "../lib/supabase";
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);

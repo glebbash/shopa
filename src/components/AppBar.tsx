@@ -11,14 +11,14 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 
 import { useSession } from "../hooks/useSession";
-import { supabase } from "../supabase";
+import { supabase } from "../lib/supabase";
 
 export function AppHeader() {
   const session = useSession();
   const { menuAnchor, setMenuAnchor, clearMenuAnchor } = useMenuAnchor();
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ display: "flex", flexDirection: "column" }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <Avatar

@@ -9,6 +9,32 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      items: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          group: string
+          checked: boolean
+          list_id: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          group: string
+          checked?: boolean
+          list_id: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          group?: string
+          checked?: boolean
+          list_id?: string
+        }
+      }
       shopping_list: {
         Row: {
           id: string

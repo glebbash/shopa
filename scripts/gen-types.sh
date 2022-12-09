@@ -1,1 +1,2 @@
-npx supabase gen types typescript --project-id "wfleacgjtncotluxoqyw" > src/supabase/database.d.ts
+npx supabase gen types typescript --project-id "wfleacgjtncotluxoqyw"\
+  > src/lib/supabase/database.d.ts

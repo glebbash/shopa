@@ -9,33 +9,52 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import useSWR from "swr";
 
 import { useSession } from "../hooks/useSession";
-import { supabase } from "../supabase";
+import { useState } from "react";
+import { createShoppingList, loadUserShoppingLists } from "../lib/api";
 
 export function MyListsPage() {
   const session = useSession()!;
   const userId = session?.user?.id;
 
-  const { data, error } = useSWR(userId + "/lists", () => loadMyLists(userId));
+  const [refreshId, setRefreshId] = useState(crypto.randomUUID());
+  const dialogOptions = useCreateListDialogOptions({
+    onConfirm: async (listName: string) => {
+      await createShoppingList(userId, listName);
+      setRefreshId(crypto.randomUUID());
+    },
+  });
 
+  const { data, error } = useSWR(`${userId}/${refreshId}/lists`, () =>
+    loadUserShoppingLists(userId)
+  );
   if (error) {
     return <div>Error: {JSON.stringify(error)}</div>;
   }
-
   if (data === undefined) {
     return <div>Loading...</div>;
   }
 
   return (
-    <Box>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ m: 2 }}>
+    <Box
+      key={refreshId}
+      sx={{ display: "flex", flexDirection: "column", flexGrow: 1 }}
+    >
+      <Breadcrumbs aria-label="breadcrumb" sx={{ m: 2, mb: 0 }}>
         <Link underline="hover" color="inherit" href="/">
           Lists
         </Link>
       </Breadcrumbs>
-      <List>
+      <List sx={{ flexGrow: 1, overflow: "auto" }}>
         {data?.map((l) => (
           <ListItem key={l.id} disablePadding>
             <ListItemButton href={`/lists/${l.id}`}>
@@ -51,25 +70,58 @@ export function MyListsPage() {
         color="primary"
         aria-label="add"
         sx={{ position: "absolute", bottom: 16, right: 16 }}
+        onClick={() => dialogOptions.setOpen(true)}
       >
         <AddIcon />
       </Fab>
+      <CreateListDialog {...dialogOptions} />
     </Box>
   );
 }
 
-async function loadMyLists(userId: string | undefined) {
-  if (!userId) return null;
+function useCreateListDialogOptions({
+  onConfirm = async (listName: string) => {},
+} = {}) {
+  const [open, setOpen] = useState(false);
 
-  const { data, error } = await supabase
-    .from("shopping_list")
-    .select()
-    .eq("created_by", userId);
+  return { open, setOpen, onConfirm };
+}
 
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
+// @ts-ignore
+function CreateListDialog({ open, setOpen, onConfirm }) {
+  const [value, setValue] = useState("");
 
-  return data;
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose}>
+      <DialogTitle>Create</DialogTitle>
+      <DialogContent>
+        <DialogContentText>Add a new shopping list.</DialogContentText>
+        <TextField
+          autoFocus
+          margin="dense"
+          id="name"
+          label="Name"
+          fullWidth
+          variant="standard"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button
+          onClick={() => {
+            onConfirm(value);
+            handleClose();
+          }}
+        >
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 }

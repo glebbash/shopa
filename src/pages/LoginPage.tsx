@@ -1,41 +1,32 @@
-import { useState } from "react";
-import { useSession } from "../hooks/useSession";
-import { supabase } from "../supabase";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+
+import { supabase } from "../lib/supabase";
 
 export function LoginPage() {
   return (
-    <div>
-      <h1>Shopa</h1>
-      <h2>You need to login</h2>
-      <div>
-        <LoginButton />
-      </div>
-    </div>
+    <Box
+      sx={{
+        p: 4,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Avatar src="/shopa.png" sx={{ width: 72, height: 72 }} />
+      <Typography>Shopa</Typography>
+      <LoginButton />
+    </Box>
   );
 }
 
 function LoginButton() {
-  const session = useSession();
-  const [loading, setLoading] = useState(false);
-
   const handleLogin = async () => {
-    try {
-      setLoading(true);
-      await supabase.signIn();
-    } catch (error: any) {
-      alert(error.error_description || error.message);
-    } finally {
-      setLoading(false);
-    }
+    await supabase.signIn();
   };
 
-  if (loading) {
-    return <button disabled>Loading...</button>;
-  }
-
-  if (!session) {
-    return <button onClick={handleLogin}>Log in</button>;
-  }
-
-  return <button disabled>Logged in</button>;
+  return <Button onClick={handleLogin}>Log in</Button>;
 }

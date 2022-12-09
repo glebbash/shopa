@@ -1,16 +1,11 @@
-import { useState } from "react";
+import { useSession } from "./hooks/useSession";
+import { LoginPage } from "./pages/LoginPage";
+import { MainPage } from "./pages/MainPage";
 
 export default function App() {
-  const [count, setCount] = useState(0);
+  const session = useSession();
 
-  return (
-    <div>
-      <h1>Shopa</h1>
-      <div>
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
-    </div>
-  );
+  if (!session) return <LoginPage />;
+
+  return <MainPage />;
 }

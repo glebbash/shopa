@@ -10,7 +10,7 @@ export function useSession() {
       const result = await supabase.auth.getSession();
       setSession(result.data.session);
     })();
-  });
+  }, []);
 
   return session;
 }

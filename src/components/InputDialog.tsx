@@ -39,6 +39,9 @@ function InputDialog(props: ReturnType<typeof useOptions>) {
 
   const handleClose = () => {
     props.setOpen(false);
+    for (const [, setValue] of valueStates) {
+      setValue("");
+    }
   };
 
   return (
@@ -63,7 +66,7 @@ function InputDialog(props: ReturnType<typeof useOptions>) {
         <Button onClick={handleClose}>Cancel</Button>
         <Button
           onClick={() => {
-            props.onConfirm(valueStates.map((s) => s[0]));
+            props.onConfirm(valueStates.map(([value]) => value));
             handleClose();
           }}
         >

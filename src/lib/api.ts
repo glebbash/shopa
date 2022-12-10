@@ -1,94 +1,86 @@
+import { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
-export async function loadUserShoppingLists(userId: string) {
-  if (!userId) return undefined; // ugly fix for double rendering
+export type Item = {
+  id: string;
+  created_at: string;
+  name: string;
+  group: string;
+  checked: boolean;
+  list_id: string;
+};
 
-  const { data, error } = await supabase
-    .from("shopping_list")
-    .select()
-    .eq("created_by", userId);
+export const loadUserShoppingLists = api(async (userId: string) => {
+  // ugly fix for double rendering
+  if (!userId) return { data: undefined, error: null };
 
-  if (error) throw new Error(error.message);
+  return supabase.from("shopping_list").select().eq("created_by", userId);
+});
 
-  return data;
-}
-
-export async function loadShoppingList(listId: string) {
-  const { data, error } = await supabase
+export const loadShoppingList = api(async (listId: string) =>
+  supabase
     .from("shopping_list")
     .select("*, items(*)")
     .eq("id", listId)
     .eq("items.list_id", listId)
-    .single();
+    .single()
+);
 
-  if (error) throw new Error(error.message);
-
-  return data;
-}
-
-export async function createShoppingList(userId: string, listName: string) {
-  const { data, error } = await supabase.from("shopping_list").insert({
-    created_by: userId,
-    name: listName,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return data;
-}
+export const createShoppingList = api(
+  async (userId: string, listName: string) =>
+    supabase.from("shopping_list").insert({
+      created_by: userId,
+      name: listName,
+    })
+);
 
 export async function renameShoppingList(listId: string, listName: string) {
-  const { data, error } = await supabase
+  const res = await supabase
     .from("shopping_list")
     .update({
       name: listName,
     })
     .eq("id", listId);
 
-  if (error) throw new Error(error.message);
-
-  return data;
-}
-
-export async function deleteShoppingList(listId: string) {
-  const res2 = await supabase.from("items").delete().eq("list_id", listId);
-  if (res2.error) throw new Error(res2.error.message);
-
-  const res = await supabase.from("shopping_list").delete().eq("id", listId);
   if (res.error) throw new Error(res.error.message);
 
-  return true;
+  return res.data;
 }
 
-export async function createShoppingItem(
-  listId: string,
-  itemName: string,
-  groupName: string
+export const deleteShoppingList = api(async (listId: string) => {
+  await api(
+    async () => await supabase.from("items").delete().eq("list_id", listId)
+  )();
+
+  return supabase.from("shopping_list").delete().eq("id", listId);
+});
+
+export const createShoppingItem = api(
+  async (listId: string, itemName: string, groupName: string) =>
+    supabase.from("items").insert({
+      list_id: listId,
+      name: itemName,
+      group: groupName,
+    })
+);
+
+export const updateItem = api(async (item: Item) =>
+  supabase.from("items").update(item).eq("id", item.id)
+);
+
+export const deleteItem = api(async (itemId: string) =>
+  supabase.from("items").delete().eq("id", itemId)
+);
+
+// utils
+
+function api<A extends unknown[], R>(
+  fn: (...args: A) => Promise<{ data: R; error: PostgrestError | null }>
 ) {
-  const { data, error } = await supabase.from("items").insert({
-    list_id: listId,
-    name: itemName,
-    group: groupName,
-  });
+  return async (...args: A) => {
+    const res = await fn(...args);
+    if (res.error) throw new Error(res.error.message);
 
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
-
-  return data;
-}
-
-export async function setItemChecked(itemId: string, checked: boolean) {
-  const { data, error } = await supabase
-    .from("items")
-    .update({ checked })
-    .eq("id", itemId);
-
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
-
-  return data;
+    return res.data;
+  };
 }

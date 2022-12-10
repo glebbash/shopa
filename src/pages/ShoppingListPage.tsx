@@ -14,13 +14,6 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ListSubheader from "@mui/material/ListSubheader";
 import Fab from "@mui/material/Fab";
 import AddIcon from "@mui/icons-material/Add";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import Collapse from "@mui/material/Collapse";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -33,34 +26,35 @@ import _ from "lodash";
 
 import {
   createShoppingItem,
+  deleteItem,
+  Item,
   loadShoppingList,
-  setItemChecked,
+  updateItem,
 } from "../lib/api";
 import { InputDialog } from "../components/InputDialog";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
-type Item = {
-  id: string;
-  created_at: string;
-  name: string;
-  group: string;
-  checked: boolean;
-  list_id: string;
-};
+type OnItemAction = (
+  item: Item,
+  action: "check" | "rename" | "change-group" | "delete"
+) => void;
 
 export function ShoppingListPage() {
   const listId = useLoaderData() as string;
   const [dataRefreshId, setDataRefreshId] = useState(crypto.randomUUID());
 
-  const [selectedItem, setSelectedItem] = useState({
-    id: "",
-    name: "",
-    group: "",
-  });
+  const [hiddenGroups, setHiddenGroups] = useLocalStorage(
+    `${listId}/checkedItems`,
+    new Set<string>(),
+    {
+      serialize: (s) => JSON.stringify([...s]),
+      deserialize: (s) => new Set(JSON.parse(s)),
+    }
+  );
 
-  const handleToggle = async (item: { id: string; checked: boolean }) => {
-    await setItemChecked(item.id, !item.checked);
-    setDataRefreshId(crypto.randomUUID());
-  };
+  const [selectedItem, setSelectedItem] = useState({
+    name: "",
+  } as unknown as Item);
 
   const { data, error } = useSWR(`${dataRefreshId}/lists/${listId}`, () =>
     loadShoppingList(listId)
@@ -79,6 +73,49 @@ export function ShoppingListPage() {
       setDataRefreshId(crypto.randomUUID());
     },
   });
+  const renameItemDialog = InputDialog.useOptions({
+    title: "Rename item",
+    description: `Rename ${selectedItem.name}`,
+    inputs: ["New name"],
+    action: "Rename",
+    onConfirm: async ([itemName]) => {
+      await updateItem({ ...selectedItem, name: itemName });
+      setDataRefreshId(crypto.randomUUID());
+    },
+  });
+  const changeItemGroupDialog = InputDialog.useOptions({
+    title: "Change group",
+    description: `Change group ${selectedItem.group} of ${selectedItem.name}`,
+    inputs: ["New group"],
+    action: "Change",
+    onConfirm: async ([groupName]) => {
+      await updateItem({ ...selectedItem, group: groupName });
+      setDataRefreshId(crypto.randomUUID());
+    },
+  });
+  const deleteItemDialog = InputDialog.useOptions({
+    title: "Delete item",
+    description: `Delete "${selectedItem.name}"`,
+    inputs: [],
+    action: "Delete",
+    onConfirm: async () => {
+      await deleteItem(selectedItem.id);
+      setDataRefreshId(crypto.randomUUID());
+    },
+  });
+
+  const onItemAction: OnItemAction = async (item, action) => {
+    if (action === "check") {
+      await updateItem({ ...item, checked: !item.checked });
+      setDataRefreshId(crypto.randomUUID());
+      return;
+    }
+
+    setSelectedItem(item);
+    if (action === "rename") renameItemDialog.setOpen(true);
+    if (action === "change-group") changeItemGroupDialog.setOpen(true);
+    if (action === "delete") deleteItemDialog.setOpen(true);
+  };
 
   return (
     <Box
@@ -96,7 +133,12 @@ export function ShoppingListPage() {
           {data?.name ?? "loading..."}
         </Typography>
       </Breadcrumbs>
-      {createItems(data?.items as never, handleToggle)}
+      {createItems(
+        data?.items as never,
+        onItemAction,
+        hiddenGroups,
+        setHiddenGroups
+      )}
       <Fab
         color="primary"
         aria-label="add"
@@ -106,11 +148,19 @@ export function ShoppingListPage() {
         <AddIcon />
       </Fab>
       <InputDialog {...createItemDialog} />
+      <InputDialog {...renameItemDialog} />
+      <InputDialog {...changeItemGroupDialog} />
+      <InputDialog {...deleteItemDialog} />
     </Box>
   );
 }
 
-function createItems(items: Item[] | undefined, handleToggle: any) {
+function createItems(
+  items: Item[] | undefined,
+  onAction: OnItemAction,
+  hiddenGroups: Set<string>,
+  setHiddenGroups: (hiddenGroups: Set<string>) => void
+) {
   if (!Array.isArray(items)) {
     return "loading...";
   }
@@ -123,7 +173,13 @@ function createItems(items: Item[] | undefined, handleToggle: any) {
     return (
       <ItemGroup
         key={groupName}
-        {...{ groupName, items: _.sortBy(items, "checked"), handleToggle }}
+        {...{
+          hiddenGroups,
+          setHiddenGroups,
+          groupName,
+          items: _.sortBy(items, "checked"),
+          onAction,
+        }}
       />
     );
   });
@@ -144,39 +200,44 @@ function createItems(items: Item[] | undefined, handleToggle: any) {
 }
 
 type ItemGroupProps = {
+  hiddenGroups: Set<string>;
+  setHiddenGroups: (hiddenGroups: Set<string>) => void;
   items: Item[];
   groupName: string;
-  handleToggle: any;
+  onAction: OnItemAction;
 };
 
-function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
-  const [open, setOpen] = useState(true);
+function ItemGroup({
+  hiddenGroups,
+  setHiddenGroups,
+  items,
+  groupName,
+  onAction,
+}: ItemGroupProps) {
+  const [open, setOpen_] = useState(!hiddenGroups.has(groupName));
+
+  const setOpen = (open: boolean) => {
+    setOpen_(open);
+    if (!open) {
+      hiddenGroups.add(groupName);
+    } else {
+      hiddenGroups.delete(groupName);
+    }
+    setHiddenGroups(hiddenGroups);
+  };
 
   const childItems = items.map((item) => (
-    <Item key={item.id} item={item} handleToggle={handleToggle} />
+    <ItemView key={item.id} item={item} onAction={onAction} />
   ));
 
   return (
     <Box>
       <ListSubheader>
-        {/* TODO: remove ListItem and style expand icon manually */}
-        <ListItem
-          disablePadding
-          secondaryAction={
-            <IconButton
-              edge="end"
-              aria-label="comments"
-              disableRipple
-              sx={{ pointerEvents: "none" }}
-            >
-              {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          }
-        >
-          <ListItemButton onClick={() => setOpen(!open)} role={undefined} dense>
-            <ListItemText primary={groupName} />
-          </ListItemButton>
-        </ListItem>
+        <ListItemButton onClick={() => setOpen(!open)} role={undefined} dense>
+          <ListItemText primary={groupName} />
+          {items.filter((i) => i.checked).length}/{items.length}
+          {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </ListItemButton>
       </ListSubheader>
       <Collapse in={open} timeout="auto" unmountOnExit>
         {childItems}
@@ -185,13 +246,12 @@ function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
   );
 }
 
-function Item({
-  item,
-  handleToggle,
-}: {
+type ItemProps = {
   item: Item;
-  handleToggle: (item: Item) => void;
-}) {
+  onAction: OnItemAction;
+};
+
+function ItemView({ item, onAction }: ItemProps) {
   const labelId = `checkbox-list-label-${item.id}`;
 
   return (
@@ -209,8 +269,30 @@ function Item({
               </IconButton>
 
               <Menu {...bindMenu(popupState)}>
-                <MenuItem onClick={popupState.close}>Edit</MenuItem>
-                <MenuItem onClick={popupState.close}>Delete</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    onAction(item, "rename");
+                    popupState.close();
+                  }}
+                >
+                  Rename
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    onAction(item, "change-group");
+                    popupState.close();
+                  }}
+                >
+                  Change group
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    onAction(item, "delete");
+                    popupState.close();
+                  }}
+                >
+                  Delete
+                </MenuItem>
               </Menu>
             </>
           )}
@@ -218,7 +300,11 @@ function Item({
       }
       disablePadding
     >
-      <ListItemButton role={undefined} onClick={() => handleToggle(item)} dense>
+      <ListItemButton
+        role={undefined}
+        onClick={() => onAction(item, "check")}
+        dense
+      >
         <ListItemIcon>
           <Checkbox
             color="default"

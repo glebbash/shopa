@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
-import { AppHeader } from "../components/AppBar";
+import { AppHeader } from "../components/AppHeader";
 import { SessionContext } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
 import { LoginPage } from "./LoginPage";

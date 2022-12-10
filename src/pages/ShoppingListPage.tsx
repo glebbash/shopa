@@ -41,7 +41,6 @@ type OnItemAction = (
 
 export function ShoppingListPage() {
   const listId = useLoaderData() as string;
-  const [dataRefreshId, setDataRefreshId] = useState(crypto.randomUUID());
 
   const [hiddenGroups, setHiddenGroups] = useLocalStorage(
     `${listId}/checkedItems`,
@@ -52,13 +51,11 @@ export function ShoppingListPage() {
     }
   );
 
-  const [selectedItem, setSelectedItem] = useState({
-    name: "",
-  } as unknown as Item);
-
-  const { data, error } = useSWR(`${dataRefreshId}/lists/${listId}`, () =>
-    loadShoppingList(listId)
-  );
+  const {
+    data,
+    error,
+    mutate: reload,
+  } = useSWR(`lists/${listId}`, () => loadShoppingList(listId));
   if (error) {
     return <div>Error: {JSON.stringify(error)}</div>;
   }
@@ -70,9 +67,14 @@ export function ShoppingListPage() {
     action: "Create",
     onConfirm: async ([itemName, groupName]) => {
       await createShoppingItem(listId, itemName, groupName);
-      setDataRefreshId(crypto.randomUUID());
+      reload();
     },
   });
+
+  const [selectedItem, setSelectedItem] = useState({
+    name: "",
+  } as unknown as Item);
+
   const renameItemDialog = InputDialog.useOptions({
     title: "Rename item",
     description: `Rename ${selectedItem.name}`,
@@ -80,7 +82,7 @@ export function ShoppingListPage() {
     action: "Rename",
     onConfirm: async ([itemName]) => {
       await updateItem({ ...selectedItem, name: itemName });
-      setDataRefreshId(crypto.randomUUID());
+      reload();
     },
   });
   const changeItemGroupDialog = InputDialog.useOptions({
@@ -90,7 +92,7 @@ export function ShoppingListPage() {
     action: "Change",
     onConfirm: async ([groupName]) => {
       await updateItem({ ...selectedItem, group: groupName });
-      setDataRefreshId(crypto.randomUUID());
+      reload();
     },
   });
   const deleteItemDialog = InputDialog.useOptions({
@@ -100,14 +102,14 @@ export function ShoppingListPage() {
     action: "Delete",
     onConfirm: async () => {
       await deleteItem(selectedItem.id);
-      setDataRefreshId(crypto.randomUUID());
+      reload();
     },
   });
 
   const onItemAction: OnItemAction = async (item, action) => {
     if (action === "check") {
       await updateItem({ ...item, checked: !item.checked });
-      setDataRefreshId(crypto.randomUUID());
+      reload();
       return;
     }
 

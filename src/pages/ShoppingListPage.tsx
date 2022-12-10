@@ -23,7 +23,11 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import Collapse from "@mui/material/Collapse";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useLoaderData } from "react-router-dom";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 import useSWR from "swr";
 import _ from "lodash";
 
@@ -100,9 +104,11 @@ function createItems(items: Item[] | undefined, handleToggle: any) {
     return "loading...";
   }
 
-  const listItems = Object.entries(
+  const sortedAndGrouped = Object.entries(
     _.groupBy(_.sortBy(items, "group"), "group")
-  ).map(([groupName, items]) => {
+  );
+
+  const listItems = sortedAndGrouped.map(([groupName, items]) => {
     return (
       <ItemGroup
         {...{ groupName, items: _.sortBy(items, "checked"), handleToggle }}
@@ -134,45 +140,9 @@ type ItemGroupProps = {
 function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
   const [open, setOpen] = useState(true);
 
-  const actualItems = items.map((item) => {
-    const labelId = `checkbox-list-label-${item.id}`;
-
-    return (
-      <ListItem
-        key={item.id}
-        secondaryAction={
-          <IconButton edge="end" aria-label="comments">
-            <MoreVertIcon />
-          </IconButton>
-        }
-        disablePadding
-      >
-        <ListItemButton
-          role={undefined}
-          onClick={() => handleToggle(item)}
-          dense
-        >
-          <ListItemIcon>
-            <Checkbox
-              color="default"
-              edge="start"
-              checked={item.checked}
-              tabIndex={-1}
-              disableRipple
-              inputProps={{ "aria-labelledby": labelId }}
-            />
-          </ListItemIcon>
-          <ListItemText
-            id={labelId}
-            primary={item.name}
-            sx={{
-              textDecoration: item.checked ? "line-through" : "default",
-            }}
-          />
-        </ListItemButton>
-      </ListItem>
-    );
-  });
+  const childItems = items.map((item) => (
+    <Item item={item} handleToggle={handleToggle} />
+  ));
 
   return (
     <Box key={groupName}>
@@ -180,20 +150,14 @@ function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
         <ListItem
           disablePadding
           secondaryAction={
-            open ? (
-              <IconButton edge="end" aria-label="comments">
-                <MoreVertIcon />
-              </IconButton>
-            ) : (
-              <IconButton
-                edge="end"
-                aria-label="comments"
-                disableRipple
-                sx={{ pointerEvents: "none" }}
-              >
-                <ExpandMoreIcon />
-              </IconButton>
-            )
+            <IconButton
+              edge="end"
+              aria-label="comments"
+              disableRipple
+              sx={{ pointerEvents: "none" }}
+            >
+              {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
           }
         >
           <ListItemButton onClick={() => setOpen(!open)} role={undefined} dense>
@@ -202,9 +166,66 @@ function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
         </ListItem>
       </ListSubheader>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        {actualItems}
+        {childItems}
       </Collapse>
     </Box>
+  );
+}
+
+function Item({
+  item,
+  handleToggle,
+}: {
+  item: Item;
+  handleToggle: (item: Item) => void;
+}) {
+  const labelId = `checkbox-list-label-${item.id}`;
+
+  return (
+    <ListItem
+      key={item.id}
+      secondaryAction={
+        <PopupState variant="popover" popupId="demo-popup-menu">
+          {(popupState) => (
+            <>
+              <IconButton
+                edge="end"
+                aria-label="more"
+                {...bindTrigger(popupState)}
+              >
+                <MoreVertIcon />
+              </IconButton>
+
+              <Menu {...bindMenu(popupState)}>
+                <MenuItem onClick={popupState.close}>Edit</MenuItem>
+                <MenuItem onClick={popupState.close}>Delete</MenuItem>
+              </Menu>
+            </>
+          )}
+        </PopupState>
+      }
+      disablePadding
+    >
+      <ListItemButton role={undefined} onClick={() => handleToggle(item)} dense>
+        <ListItemIcon>
+          <Checkbox
+            color="default"
+            edge="start"
+            checked={item.checked}
+            tabIndex={-1}
+            disableRipple
+            inputProps={{ "aria-labelledby": labelId }}
+          />
+        </ListItemIcon>
+        <ListItemText
+          id={labelId}
+          primary={item.name}
+          sx={{
+            textDecoration: item.checked ? "line-through" : "default",
+          }}
+        />
+      </ListItemButton>
+    </ListItem>
   );
 }
 

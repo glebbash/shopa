@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Fab from "@mui/material/Fab";
 import AddIcon from "@mui/icons-material/Add";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
@@ -16,10 +17,14 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 import useSWR from "swr";
 
 import { useSession } from "../hooks/useSession";
-import { useState } from "react";
 import { createShoppingList, loadUserShoppingLists } from "../lib/api";
 
 export function MyListsPage() {
@@ -56,7 +61,30 @@ export function MyListsPage() {
       </Breadcrumbs>
       <List sx={{ flexGrow: 1, overflow: "auto" }}>
         {data?.map((l) => (
-          <ListItem key={l.id} disablePadding>
+          <ListItem
+            key={l.id}
+            disablePadding
+            secondaryAction={
+              <PopupState variant="popover" popupId="demo-popup-menu">
+                {(popupState) => (
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="more"
+                      {...bindTrigger(popupState)}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+
+                    <Menu {...bindMenu(popupState)}>
+                      <MenuItem onClick={popupState.close}>Edit</MenuItem>
+                      <MenuItem onClick={popupState.close}>Delete</MenuItem>
+                    </Menu>
+                  </>
+                )}
+              </PopupState>
+            }
+          >
             <ListItemButton href={`/lists/${l.id}`}>
               <ListItemIcon>
                 <FactCheckIcon />

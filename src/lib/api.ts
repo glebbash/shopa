@@ -1,17 +1,14 @@
 import { supabase } from "./supabase";
 
-export async function loadUserShoppingLists(userId: string | undefined) {
-  if (!userId) return null;
+export async function loadUserShoppingLists(userId: string) {
+  if (!userId) return undefined; // ugly fix for double rendering
 
   const { data, error } = await supabase
     .from("shopping_list")
     .select()
     .eq("created_by", userId);
 
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   return data;
 }
@@ -35,12 +32,32 @@ export async function createShoppingList(userId: string, listName: string) {
     name: listName,
   });
 
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   return data;
+}
+
+export async function renameShoppingList(listId: string, listName: string) {
+  const { data, error } = await supabase
+    .from("shopping_list")
+    .update({
+      name: listName,
+    })
+    .eq("id", listId);
+
+  if (error) throw new Error(error.message);
+
+  return data;
+}
+
+export async function deleteShoppingList(listId: string) {
+  const res2 = await supabase.from("items").delete().eq("list_id", listId);
+  if (res2.error) throw new Error(res2.error.message);
+
+  const res = await supabase.from("shopping_list").delete().eq("id", listId);
+  if (res.error) throw new Error(res.error.message);
+
+  return true;
 }
 
 export async function createShoppingItem(

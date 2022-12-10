@@ -10,13 +10,6 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import Menu from "@mui/material/Menu";
@@ -25,16 +18,48 @@ import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 import useSWR from "swr";
 
 import { useSession } from "../hooks/useSession";
-import { createShoppingList, loadUserShoppingLists } from "../lib/api";
+import { InputDialog } from "../components/InputDialog";
+import {
+  createShoppingList,
+  deleteShoppingList,
+  loadUserShoppingLists,
+  renameShoppingList,
+} from "../lib/api";
+import _ from "lodash";
 
 export function MyListsPage() {
   const session = useSession()!;
   const userId = session?.user?.id;
 
+  const [selectedList, setSelectedList] = useState({ id: "", name: "" });
+
   const [refreshId, setRefreshId] = useState(crypto.randomUUID());
-  const dialogOptions = useCreateListDialogOptions({
-    onConfirm: async (listName: string) => {
+  const createDialog = InputDialog.useOptions({
+    title: "Create",
+    description: "Add a new shopping list.",
+    inputs: ["Name"],
+    action: "Create list",
+    onConfirm: async ([listName]) => {
       await createShoppingList(userId, listName);
+      setRefreshId(crypto.randomUUID());
+    },
+  });
+  const renameDialog = InputDialog.useOptions({
+    title: "Rename list",
+    description: `Rename "${selectedList.name}"`,
+    inputs: ["New name"],
+    action: "Rename",
+    onConfirm: async ([listName]) => {
+      await renameShoppingList(selectedList.id, listName);
+      setRefreshId(crypto.randomUUID());
+    },
+  });
+  const deleteDialog = InputDialog.useOptions({
+    title: "Delete list",
+    description: `Delete "${selectedList.name}"`,
+    action: "Delete",
+    onConfirm: async () => {
+      await deleteShoppingList(selectedList.id);
       setRefreshId(crypto.randomUUID());
     },
   });
@@ -49,6 +74,8 @@ export function MyListsPage() {
     return <div>Loading...</div>;
   }
 
+  const lists = _.sortBy(data, "name");
+
   return (
     <Box
       key={refreshId}
@@ -60,36 +87,52 @@ export function MyListsPage() {
         </Link>
       </Breadcrumbs>
       <List sx={{ flexGrow: 1, overflow: "auto" }}>
-        {data?.map((l) => (
+        {lists.map((list) => (
           <ListItem
-            key={l.id}
+            key={list.id}
             disablePadding
             secondaryAction={
               <PopupState variant="popover" popupId="demo-popup-menu">
-                {(popupState) => (
+                {(popup) => (
                   <>
                     <IconButton
                       edge="end"
                       aria-label="more"
-                      {...bindTrigger(popupState)}
+                      {...bindTrigger(popup)}
                     >
                       <MoreVertIcon />
                     </IconButton>
 
-                    <Menu {...bindMenu(popupState)}>
-                      <MenuItem onClick={popupState.close}>Edit</MenuItem>
-                      <MenuItem onClick={popupState.close}>Delete</MenuItem>
+                    <Menu {...bindMenu(popup)}>
+                      <MenuItem
+                        onClick={() => {
+                          setSelectedList(list);
+                          popup.close();
+                          renameDialog.setOpen(true);
+                        }}
+                      >
+                        Rename
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          setSelectedList(list);
+                          popup.close();
+                          deleteDialog.setOpen(true);
+                        }}
+                      >
+                        Delete
+                      </MenuItem>
                     </Menu>
                   </>
                 )}
               </PopupState>
             }
           >
-            <ListItemButton href={`/lists/${l.id}`}>
+            <ListItemButton href={`/lists/${list.id}`}>
               <ListItemIcon>
                 <FactCheckIcon />
               </ListItemIcon>
-              <ListItemText primary={l.name} />
+              <ListItemText primary={list.name} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -98,58 +141,13 @@ export function MyListsPage() {
         color="primary"
         aria-label="add"
         sx={{ position: "absolute", bottom: 16, right: 16 }}
-        onClick={() => dialogOptions.setOpen(true)}
+        onClick={() => createDialog.setOpen(true)}
       >
         <AddIcon />
       </Fab>
-      <CreateListDialog {...dialogOptions} />
+      <InputDialog {...createDialog} />
+      <InputDialog {...renameDialog} />
+      <InputDialog {...deleteDialog} />
     </Box>
-  );
-}
-
-function useCreateListDialogOptions({
-  onConfirm = async (listName: string) => {},
-} = {}) {
-  const [open, setOpen] = useState(false);
-
-  return { open, setOpen, onConfirm };
-}
-
-// @ts-ignore
-function CreateListDialog({ open, setOpen, onConfirm }) {
-  const [value, setValue] = useState("");
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Create</DialogTitle>
-      <DialogContent>
-        <DialogContentText>Add a new shopping list.</DialogContentText>
-        <TextField
-          autoFocus
-          margin="dense"
-          id="name"
-          label="Name"
-          fullWidth
-          variant="standard"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button
-          onClick={() => {
-            onConfirm(value);
-            handleClose();
-          }}
-        >
-          Create
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 }

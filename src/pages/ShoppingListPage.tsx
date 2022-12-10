@@ -36,6 +36,7 @@ import {
   loadShoppingList,
   setItemChecked,
 } from "../lib/api";
+import { InputDialog } from "../components/InputDialog";
 
 type Item = {
   id: string;
@@ -50,6 +51,12 @@ export function ShoppingListPage() {
   const listId = useLoaderData() as string;
   const [dataRefreshId, setDataRefreshId] = useState(crypto.randomUUID());
 
+  const [selectedItem, setSelectedItem] = useState({
+    id: "",
+    name: "",
+    group: "",
+  });
+
   const handleToggle = async (item: { id: string; checked: boolean }) => {
     await setItemChecked(item.id, !item.checked);
     setDataRefreshId(crypto.randomUUID());
@@ -62,8 +69,12 @@ export function ShoppingListPage() {
     return <div>Error: {JSON.stringify(error)}</div>;
   }
 
-  const dialogOptions = useCreateItemDialogOptions({
-    onConfirm: async (itemName, groupName) => {
+  const createItemDialog = InputDialog.useOptions({
+    title: "Create item",
+    description: "Add a new item.",
+    inputs: ["Name", "Group"],
+    action: "Create",
+    onConfirm: async ([itemName, groupName]) => {
       await createShoppingItem(listId, itemName, groupName);
       setDataRefreshId(crypto.randomUUID());
     },
@@ -90,11 +101,11 @@ export function ShoppingListPage() {
         color="primary"
         aria-label="add"
         sx={{ position: "absolute", bottom: 16, right: 16 }}
-        onClick={() => dialogOptions.setOpen(true)}
+        onClick={() => createItemDialog.setOpen(true)}
       >
         <AddIcon />
       </Fab>
-      <CreateItemDialog {...dialogOptions} />
+      <InputDialog {...createItemDialog} />
     </Box>
   );
 }
@@ -111,6 +122,7 @@ function createItems(items: Item[] | undefined, handleToggle: any) {
   const listItems = sortedAndGrouped.map(([groupName, items]) => {
     return (
       <ItemGroup
+        key={groupName}
         {...{ groupName, items: _.sortBy(items, "checked"), handleToggle }}
       />
     );
@@ -141,12 +153,13 @@ function ItemGroup({ items, groupName, handleToggle }: ItemGroupProps) {
   const [open, setOpen] = useState(true);
 
   const childItems = items.map((item) => (
-    <Item item={item} handleToggle={handleToggle} />
+    <Item key={item.id} item={item} handleToggle={handleToggle} />
   ));
 
   return (
-    <Box key={groupName}>
+    <Box>
       <ListSubheader>
+        {/* TODO: remove ListItem and style expand icon manually */}
         <ListItem
           disablePadding
           secondaryAction={
@@ -183,7 +196,6 @@ function Item({
 
   return (
     <ListItem
-      key={item.id}
       secondaryAction={
         <PopupState variant="popover" popupId="demo-popup-menu">
           {(popupState) => (
@@ -226,65 +238,5 @@ function Item({
         />
       </ListItemButton>
     </ListItem>
-  );
-}
-
-function useCreateItemDialogOptions({
-  onConfirm = async (itemName: string, groupName: string) => {},
-} = {}) {
-  const [open, setOpen] = useState(false);
-
-  return { open, setOpen, onConfirm };
-}
-
-function CreateItemDialog({
-  open,
-  setOpen,
-  onConfirm,
-}: ReturnType<typeof useCreateItemDialogOptions>) {
-  const [itemName, setItemName] = useState("");
-  const [groupName, setGroupName] = useState("");
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Create</DialogTitle>
-      <DialogContent>
-        <DialogContentText>Add a new item.</DialogContentText>
-        <TextField
-          autoFocus
-          margin="dense"
-          id="name"
-          label="Name"
-          fullWidth
-          variant="standard"
-          value={itemName}
-          onChange={(e) => setItemName(e.target.value)}
-        />
-        <TextField
-          margin="dense"
-          id="group"
-          label="Group"
-          fullWidth
-          variant="standard"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button
-          onClick={() => {
-            onConfirm(itemName, groupName);
-            handleClose();
-          }}
-        >
-          Create
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
@@ -14,7 +14,7 @@ const component = Object.assign(InputDialog, {
 
 function useOptions({
   title = "Title",
-  description = "Description",
+  description = "Description" as ReactNode,
   inputs = [] as string[],
   action = "Confirm",
   onConfirm = async (values: string[]) => {},

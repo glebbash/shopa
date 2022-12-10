@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
@@ -21,18 +21,12 @@ import { useLoaderData } from "react-router-dom";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
-import useSWR from "swr";
 import _ from "lodash";
 
-import {
-  createShoppingItem,
-  deleteItem,
-  Item,
-  loadShoppingList,
-  updateItem,
-} from "../lib/api";
+import { createShoppingItem, deleteItem, Item, updateItem } from "../lib/api";
 import { InputDialog } from "../components/InputDialog";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useShoppingList } from "../hooks/useShoppingList";
 
 type OnItemAction = (
   item: Item,
@@ -51,14 +45,7 @@ export function ShoppingListPage() {
     }
   );
 
-  const {
-    data,
-    error,
-    mutate: reload,
-  } = useSWR(`lists/${listId}`, () => loadShoppingList(listId));
-  if (error) {
-    return <div>Error: {JSON.stringify(error)}</div>;
-  }
+  const data = useShoppingList(listId);
 
   const createItemDialog = InputDialog.useOptions({
     title: "Create item",
@@ -66,8 +53,7 @@ export function ShoppingListPage() {
     inputs: ["Name", "Group"],
     action: "Create",
     onConfirm: async ([itemName, groupName]) => {
-      await createShoppingItem(listId, itemName, groupName);
-      reload();
+      await createShoppingItem(listId, itemName, groupName, false);
     },
   });
 
@@ -82,7 +68,6 @@ export function ShoppingListPage() {
     action: "Rename",
     onConfirm: async ([itemName]) => {
       await updateItem({ ...selectedItem, name: itemName });
-      reload();
     },
   });
   const changeItemGroupDialog = InputDialog.useOptions({
@@ -92,7 +77,6 @@ export function ShoppingListPage() {
     action: "Change",
     onConfirm: async ([groupName]) => {
       await updateItem({ ...selectedItem, group: groupName });
-      reload();
     },
   });
   const deleteItemDialog = InputDialog.useOptions({
@@ -102,14 +86,12 @@ export function ShoppingListPage() {
     action: "Delete",
     onConfirm: async () => {
       await deleteItem(selectedItem.id);
-      reload();
     },
   });
 
   const onItemAction: OnItemAction = async (item, action) => {
     if (action === "check") {
       await updateItem({ ...item, checked: !item.checked });
-      reload();
       return;
     }
 

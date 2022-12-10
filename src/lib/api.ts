@@ -28,10 +28,14 @@ export const loadShoppingList = api(async (listId: string) =>
 
 export const createShoppingList = api(
   async (userId: string, listName: string) =>
-    supabase.from("shopping_list").insert({
-      created_by: userId,
-      name: listName,
-    })
+    supabase
+      .from("shopping_list")
+      .insert({
+        created_by: userId,
+        name: listName,
+      })
+      .select()
+      .single()
 );
 
 export async function renameShoppingList(listId: string, listName: string) {
@@ -56,11 +60,17 @@ export const deleteShoppingList = api(async (listId: string) => {
 });
 
 export const createShoppingItem = api(
-  async (listId: string, itemName: string, groupName: string) =>
+  async (
+    listId: string,
+    itemName: string,
+    groupName: string,
+    checked: boolean
+  ) =>
     supabase.from("items").insert({
       list_id: listId,
       name: itemName,
       group: groupName,
+      checked,
     })
 );
 
@@ -70,6 +80,24 @@ export const updateItem = api(async (item: Item) =>
 
 export const deleteItem = api(async (itemId: string) =>
   supabase.from("items").delete().eq("id", itemId)
+);
+
+export const importShoppingList = api(
+  async (
+    userId: string,
+    listName: string,
+    listItems: { name: string; group: string; checked: boolean }[]
+  ) => {
+    const list = await createShoppingList(userId, listName);
+
+    await Promise.all(
+      listItems.map((item) =>
+        createShoppingItem(list!.id, item.name, item.group, item.checked)
+      )
+    );
+
+    return { data: undefined, error: null };
+  }
 );
 
 // utils

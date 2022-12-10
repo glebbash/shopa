@@ -35,10 +35,10 @@ export function MyListsPage() {
 
   const [refreshId, setRefreshId] = useState(crypto.randomUUID());
   const createDialog = InputDialog.useOptions({
-    title: "Create",
+    title: "Create list",
     description: "Add a new shopping list.",
     inputs: ["Name"],
-    action: "Create list",
+    action: "Create",
     onConfirm: async ([listName]) => {
       await createShoppingList(userId, listName);
       setRefreshId(crypto.randomUUID());

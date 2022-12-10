@@ -1,4 +1,3 @@
-import { useState, MouseEvent } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -13,9 +12,35 @@ import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
+import { InputDialog } from "./InputDialog";
+import { importShoppingList } from "../lib/api";
 
 export function AppHeader() {
-  const session = useSession();
+  const session = useSession()!;
+
+  const importListDialog = InputDialog.useOptions({
+    title: "Import list",
+    description: (
+      <div>
+        Import a shopping list using a JSON array with items following this
+        schema:
+        <br />
+        <pre>
+          {"{"}name: string, group: string, checked: boolean{"}"}
+        </pre>
+      </div>
+    ),
+    inputs: ["List name", "JSON data"],
+    action: "Import",
+    onConfirm: async ([listName, listData]) => {
+      try {
+        const listItems = JSON.parse(listData);
+        await importShoppingList(session.user.id, listName, listItems);
+      } catch (e) {
+        alert("Invalid data format");
+      }
+    },
+  });
 
   return (
     <AppBar position="static" sx={{ display: "flex", flexDirection: "column" }}>
@@ -65,6 +90,14 @@ export function AppHeader() {
                     <MenuItem
                       onClick={async () => {
                         popupState.close();
+                        importListDialog.setOpen(true);
+                      }}
+                    >
+                      Import list
+                    </MenuItem>
+                    <MenuItem
+                      onClick={async () => {
+                        popupState.close();
                         await supabase.auth.signOut();
                         window.location.href = "/";
                       }}
@@ -78,6 +111,7 @@ export function AppHeader() {
           </Box>
         </Toolbar>
       </Container>
+      <InputDialog {...importListDialog} />
     </AppBar>
   );
 }

@@ -10,12 +10,9 @@ export type Item = {
   list_id: string;
 };
 
-export const loadUserShoppingLists = api(async (userId: string) => {
-  // ugly fix for double rendering
-  if (!userId) return { data: undefined, error: null };
-
-  return supabase.from("shopping_list").select().eq("created_by", userId);
-});
+export const loadUserShoppingLists = api(async (userId: string) =>
+  supabase.from("shopping_list").select().eq("created_by", userId)
+);
 
 export const loadShoppingList = api(async (listId: string) =>
   supabase

@@ -1,16 +1,8 @@
 import { Session } from "@supabase/supabase-js";
-import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { createContext, useContext } from "react";
+
+export const SessionContext = createContext<Session>(0 as never);
 
 export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const result = await supabase.auth.getSession();
-      setSession(result.data.session);
-    })();
-  }, []);
-
-  return session;
+  return useContext(SessionContext);
 }

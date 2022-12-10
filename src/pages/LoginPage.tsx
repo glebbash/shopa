@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 
 export function LoginPage() {
   const handleLogin = async () => {
+    localStorage.setItem("urlBeforeLogin", window.location.href);
     await supabase.signIn();
   };
 

@@ -21,14 +21,14 @@ export function AppHeader() {
   const importListDialog = InputDialog.useOptions({
     title: "Import list",
     description: (
-      <div>
+      <>
         Import a shopping list using a JSON array with items following this
         schema:
         <br />
         <pre>
           {"{"}name: string, group: string, checked: boolean{"}"}
         </pre>
-      </div>
+      </>
     ),
     inputs: ["List name", "JSON data"],
     action: "Import",
@@ -36,7 +36,9 @@ export function AppHeader() {
       try {
         const listItems = JSON.parse(listData);
         await importShoppingList(session.user.id, listName, listItems);
+        window.location.href = "/";
       } catch (e) {
+        console.error(e);
         alert("Invalid data format");
       }
     },

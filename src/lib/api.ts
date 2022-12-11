@@ -35,18 +35,15 @@ export const createShoppingList = api(
       .single()
 );
 
-export async function renameShoppingList(listId: string, listName: string) {
-  const res = await supabase
-    .from("shopping_list")
-    .update({
-      name: listName,
-    })
-    .eq("id", listId);
-
-  if (res.error) throw new Error(res.error.message);
-
-  return res.data;
-}
+export const renameShoppingList = api(
+  async (listId: string, listName: string) =>
+    supabase
+      .from("shopping_list")
+      .update({
+        name: listName,
+      })
+      .eq("id", listId)
+);
 
 export const deleteShoppingList = api(async (listId: string) => {
   await api(

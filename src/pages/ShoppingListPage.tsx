@@ -61,7 +61,9 @@ export function ShoppingListPage() {
 
   const data = useShoppingList(listId);
   const items = data?.items as Item[] | undefined;
-  const suggestedGroups = [...new Set((items ?? []).map((i) => i.group))];
+  const suggestedGroups = [
+    ...new Set((items ?? []).map((i) => i.group)),
+  ].sort();
 
   const createItemDialog = CreateItemDialog.useOptions({
     suggestedGroups,

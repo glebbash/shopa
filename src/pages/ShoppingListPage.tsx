@@ -50,6 +50,15 @@ export function ShoppingListPage() {
     }
   );
 
+  const [hideChecked, setHideChecked] = useLocalStorage(
+    `${listId}/hideCompleted`,
+    false,
+    {
+      serialize: JSON.stringify,
+      deserialize: JSON.parse,
+    }
+  );
+
   const data = useShoppingList(listId);
   const items = data?.items as Item[] | undefined;
   const suggestedGroups = [...new Set((items ?? []).map((i) => i.group))];
@@ -112,6 +121,14 @@ export function ShoppingListPage() {
     if (action === "delete") deleteItemDialog.setOpen(true);
   };
 
+  const itemViews = createItems(
+    items,
+    onItemAction,
+    hiddenGroups,
+    setHiddenGroups,
+    hideChecked
+  );
+
   return (
     <Box
       sx={{
@@ -127,8 +144,32 @@ export function ShoppingListPage() {
         <Typography color="text.primary">
           {data?.name ?? "loading..."}
         </Typography>
+        <PopupState variant="popover">
+          {(popupState) => (
+            <>
+              <IconButton
+                edge="end"
+                aria-label="more"
+                {...bindTrigger(popupState)}
+              >
+                <MoreVertIcon />
+              </IconButton>
+
+              <Menu {...bindMenu(popupState)}>
+                <MenuItem
+                  onClick={() => {
+                    setHideChecked(!hideChecked);
+                    popupState.close();
+                  }}
+                >
+                  {!hideChecked ? "Hide checked" : "Show checked"}
+                </MenuItem>
+              </Menu>
+            </>
+          )}
+        </PopupState>
       </Breadcrumbs>
-      {createItems(items, onItemAction, hiddenGroups, setHiddenGroups)}
+      {itemViews}
       <Fab
         color="primary"
         aria-label="add"
@@ -149,10 +190,15 @@ function createItems(
   items: Item[] | undefined,
   onAction: OnItemAction,
   hiddenGroups: Set<string>,
-  setHiddenGroups: (hiddenGroups: Set<string>) => void
+  setHiddenGroups: (hiddenGroups: Set<string>) => void,
+  hideCompleted: boolean
 ) {
   if (!Array.isArray(items)) {
     return "loading...";
+  }
+
+  if (hideCompleted) {
+    items = items.filter((item) => !item.checked);
   }
 
   const sortedAndGrouped = Object.entries(
@@ -250,7 +296,7 @@ function ItemView({ item, onAction }: ItemProps) {
   return (
     <ListItem
       secondaryAction={
-        <PopupState variant="popover" popupId="demo-popup-menu">
+        <PopupState variant="popover">
           {(popupState) => (
             <>
               <IconButton

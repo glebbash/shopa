@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
@@ -52,11 +52,7 @@ export function ShoppingListPage() {
 
   const [hideChecked, setHideChecked] = useLocalStorage(
     `${listId}/hideCompleted`,
-    false,
-    {
-      serialize: JSON.stringify,
-      deserialize: JSON.parse,
-    }
+    false
   );
 
   const data = useShoppingList(listId);

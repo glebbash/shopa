@@ -1,12 +1,11 @@
 import { useState, ReactNode } from "react";
 import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import Autocomplete from "@mui/material/Autocomplete";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 export { component as ChangeGroupDialog };
 const component = Object.assign(ChangeGroupDialog, { useOptions });
@@ -44,14 +43,11 @@ function ChangeGroupDialog(props: ReturnType<typeof useOptions>) {
       <DialogTitle>{props.title}</DialogTitle>
       <DialogContent>
         <DialogContentText>{props.description}</DialogContentText>
-        <Autocomplete
+        <AutocompleteInput
           value={group}
-          onChange={(_, group) => setGroup(group ?? "")}
-          options={props.suggestedGroups}
-          sx={{ mt: 2 }}
-          renderInput={(params) => (
-            <TextField {...params} variant="standard" label="Group" />
-          )}
+          onChange={setGroup}
+          label="Group"
+          suggestions={props.suggestedGroups}
         />
       </DialogContent>
       <DialogActions>

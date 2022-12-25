@@ -6,7 +6,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import Autocomplete from "@mui/material/Autocomplete";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 export { component as CreateItemDialog };
 const component = Object.assign(CreateItemDialog, { useOptions });
@@ -54,14 +54,11 @@ function CreateItemDialog(props: ReturnType<typeof useOptions>) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <Autocomplete
+        <AutocompleteInput
           value={group}
-          onChange={(_, group) => setGroup(group ?? "")}
-          options={props.suggestedGroups}
-          sx={{ mt: 2 }}
-          renderInput={(params) => (
-            <TextField {...params} variant="standard" label="Group" />
-          )}
+          onChange={setGroup}
+          label="Group"
+          suggestions={props.suggestedGroups}
         />
       </DialogContent>
       <DialogActions>

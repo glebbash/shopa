@@ -57,7 +57,6 @@ function CreateItemDialog(props: ReturnType<typeof useOptions>) {
         <Autocomplete
           value={group}
           onChange={(_, group) => setGroup(group ?? "")}
-          // disablePortal
           options={props.suggestedGroups}
           sx={{ mt: 2, width: 300 }}
           renderInput={(params) => (

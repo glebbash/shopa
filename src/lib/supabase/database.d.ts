@@ -17,6 +17,7 @@ export interface Database {
           group: string
           checked: boolean
           list_id: string
+          assigned_to: string | null
         }
         Insert: {
           id?: string
@@ -25,6 +26,7 @@ export interface Database {
           group: string
           checked?: boolean
           list_id: string
+          assigned_to?: string | null
         }
         Update: {
           id?: string
@@ -33,6 +35,7 @@ export interface Database {
           group?: string
           checked?: boolean
           list_id?: string
+          assigned_to?: string | null
         }
       }
       shopping_list: {

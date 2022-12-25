@@ -1,14 +1,8 @@
 import { PostgrestError } from "@supabase/supabase-js";
+import { Database } from "./supabase/database";
 import { supabase } from "./supabase";
 
-export type Item = {
-  id: string;
-  created_at: string;
-  name: string;
-  group: string;
-  checked: boolean;
-  list_id: string;
-};
+export type Item = Database["public"]["Tables"]["items"]["Row"];
 
 export const loadUserShoppingLists = api(async (userId: string) =>
   supabase.from("shopping_list").select().eq("created_by", userId)

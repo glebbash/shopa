@@ -20,6 +20,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useLoaderData } from "react-router-dom";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Avatar from "@mui/material/Avatar";
 import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 import _ from "lodash";
 
@@ -28,13 +29,15 @@ import { InputDialog } from "../components/InputDialog";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useShoppingList } from "../hooks/useShoppingList";
 import { CreateItemDialog } from "../components/CreateItemDialog";
+import { useSession } from "../hooks/useSession";
 
 type OnItemAction = (
   item: Item,
-  action: "check" | "rename" | "change-group" | "delete"
+  action: "assign" | "check" | "rename" | "change-group" | "delete"
 ) => void;
 
 export function ShoppingListPage() {
+  const { user } = useSession();
   const listId = useLoaderData() as string;
 
   const [hiddenGroups, setHiddenGroups] = useLocalStorage(
@@ -91,6 +94,15 @@ export function ShoppingListPage() {
   const onItemAction: OnItemAction = async (item, action) => {
     if (action === "check") {
       await updateItem({ ...item, checked: !item.checked });
+      return;
+    }
+
+    if (action === "assign") {
+      await updateItem({
+        ...item,
+        assigned_to:
+          item.assigned_to == null ? user.user_metadata.picture : null,
+      });
       return;
     }
 
@@ -249,6 +261,14 @@ function ItemView({ item, onAction }: ItemProps) {
               <Menu {...bindMenu(popupState)}>
                 <MenuItem
                   onClick={() => {
+                    onAction(item, "assign");
+                    popupState.close();
+                  }}
+                >
+                  Assign
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     onAction(item, "rename");
                     popupState.close();
                   }}
@@ -293,6 +313,11 @@ function ItemView({ item, onAction }: ItemProps) {
             inputProps={{ "aria-labelledby": labelId }}
           />
         </ListItemIcon>
+        {item.assigned_to && (
+          <ListItemIcon>
+            <Avatar src={item.assigned_to} />
+          </ListItemIcon>
+        )}
         <ListItemText
           id={labelId}
           primary={item.name}

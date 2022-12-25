@@ -18,7 +18,10 @@ export function useShoppingList(listId: string) {
         "postgres_changes",
         { event: "*", schema: "public", table: "items" },
         (e) => {
-          if ((e.new as Item).list_id === listId) {
+          if (
+            (e.new as Item).list_id === listId ||
+            (e.old as Item).list_id === listId
+          ) {
             mutate();
           }
         }

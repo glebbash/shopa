@@ -58,7 +58,7 @@ function CreateItemDialog(props: ReturnType<typeof useOptions>) {
           value={group}
           onChange={(_, group) => setGroup(group ?? "")}
           options={props.suggestedGroups}
-          sx={{ mt: 2, width: 300 }}
+          sx={{ mt: 2 }}
           renderInput={(params) => (
             <TextField {...params} variant="standard" label="Group" />
           )}

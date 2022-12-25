@@ -30,6 +30,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useShoppingList } from "../hooks/useShoppingList";
 import { CreateItemDialog } from "../components/CreateItemDialog";
 import { useSession } from "../hooks/useSession";
+import { ChangeGroupDialog } from "../components/ChangeGroupDialog";
 
 type OnItemAction = (
   item: Item,
@@ -51,9 +52,10 @@ export function ShoppingListPage() {
 
   const data = useShoppingList(listId);
   const items = data?.items as Item[] | undefined;
+  const suggestedGroups = [...new Set((items ?? []).map((i) => i.group))];
 
   const createItemDialog = CreateItemDialog.useOptions({
-    suggestedGroups: [...new Set((items ?? []).map((i) => i.group))],
+    suggestedGroups,
     onConfirm: async ([itemName, groupName]) => {
       await createShoppingItem(listId, itemName, groupName, false);
     },
@@ -72,11 +74,9 @@ export function ShoppingListPage() {
       await updateItem({ ...selectedItem, name: itemName });
     },
   });
-  const changeItemGroupDialog = InputDialog.useOptions({
-    title: "Change group",
+  const changeItemGroupDialog = ChangeGroupDialog.useOptions({
     description: `Change group ${selectedItem.group} of ${selectedItem.name}`,
-    inputs: ["New group"],
-    action: "Change",
+    suggestedGroups,
     onConfirm: async ([groupName]) => {
       await updateItem({ ...selectedItem, group: groupName });
     },
@@ -139,7 +139,7 @@ export function ShoppingListPage() {
       </Fab>
       <CreateItemDialog {...createItemDialog} />
       <InputDialog {...renameItemDialog} />
-      <InputDialog {...changeItemGroupDialog} />
+      <ChangeGroupDialog {...changeItemGroupDialog} />
       <InputDialog {...deleteItemDialog} />
     </Box>
   );

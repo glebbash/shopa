@@ -27,6 +27,7 @@ import { createShoppingItem, deleteItem, Item, updateItem } from "../lib/api";
 import { InputDialog } from "../components/InputDialog";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useShoppingList } from "../hooks/useShoppingList";
+import { CreateItemDialog } from "../components/CreateItemDialog";
 
 type OnItemAction = (
   item: Item,
@@ -46,12 +47,10 @@ export function ShoppingListPage() {
   );
 
   const data = useShoppingList(listId);
+  const items = data?.items as Item[] | undefined;
 
-  const createItemDialog = InputDialog.useOptions({
-    title: "Create item",
-    description: "Add a new item.",
-    inputs: ["Name", "Group"],
-    action: "Create",
+  const createItemDialog = CreateItemDialog.useOptions({
+    suggestedGroups: [...new Set((items ?? []).map((i) => i.group))],
     onConfirm: async ([itemName, groupName]) => {
       await createShoppingItem(listId, itemName, groupName, false);
     },
@@ -117,12 +116,7 @@ export function ShoppingListPage() {
           {data?.name ?? "loading..."}
         </Typography>
       </Breadcrumbs>
-      {createItems(
-        data?.items as never,
-        onItemAction,
-        hiddenGroups,
-        setHiddenGroups
-      )}
+      {createItems(items, onItemAction, hiddenGroups, setHiddenGroups)}
       <Fab
         color="primary"
         aria-label="add"
@@ -131,7 +125,7 @@ export function ShoppingListPage() {
       >
         <AddIcon />
       </Fab>
-      <InputDialog {...createItemDialog} />
+      <CreateItemDialog {...createItemDialog} />
       <InputDialog {...renameItemDialog} />
       <InputDialog {...changeItemGroupDialog} />
       <InputDialog {...deleteItemDialog} />

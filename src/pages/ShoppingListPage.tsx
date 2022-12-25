@@ -268,7 +268,7 @@ function ItemView({ item, onAction }: ItemProps) {
                     popupState.close();
                   }}
                 >
-                  Assign
+                  {item.assigned_to == null ? "Assign" : "Unassign"}
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

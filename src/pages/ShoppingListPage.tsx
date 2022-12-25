@@ -137,13 +137,16 @@ export function ShoppingListPage() {
         minHeight: 0,
       }}
     >
-      <Breadcrumbs aria-label="breadcrumb" sx={{ m: 2 }}>
-        <Link underline="hover" color="inherit" href="/">
-          Lists
-        </Link>
-        <Typography color="text.primary">
-          {data?.name ?? "loading..."}
-        </Typography>
+      <Box display="flex" flexDirection="row" sx={{ m: 2 }}>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Link underline="hover" color="inherit" href="/">
+            Lists
+          </Link>
+          <Typography color="text.primary">
+            {data?.name ?? "loading..."}
+          </Typography>
+        </Breadcrumbs>
+        <Box flexGrow="1"></Box>
         <PopupState variant="popover">
           {(popupState) => (
             <>
@@ -158,6 +161,26 @@ export function ShoppingListPage() {
               <Menu {...bindMenu(popupState)}>
                 <MenuItem
                   onClick={() => {
+                    items?.map((item) =>
+                      updateItem({ ...item, checked: true })
+                    );
+                    popupState.close();
+                  }}
+                >
+                  Check all
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    items?.map((item) =>
+                      updateItem({ ...item, checked: !item.checked })
+                    );
+                    popupState.close();
+                  }}
+                >
+                  Invert checked
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     setHideChecked(!hideChecked);
                     popupState.close();
                   }}
@@ -168,7 +191,8 @@ export function ShoppingListPage() {
             </>
           )}
         </PopupState>
-      </Breadcrumbs>
+      </Box>
+
       {itemViews}
       <Fab
         color="primary"

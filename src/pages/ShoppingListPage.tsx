@@ -167,7 +167,7 @@ function createItems(
           hiddenGroups,
           setHiddenGroups,
           groupName,
-          items: _.sortBy(items, "checked"),
+          items: _.sortBy(_.sortBy(items, "name"), "checked"),
           onAction,
         }}
       />

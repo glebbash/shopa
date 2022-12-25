@@ -185,6 +185,28 @@ export function ShoppingListPage() {
                 >
                   {!hideChecked ? "Hide checked" : "Show checked"}
                 </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    if (items) {
+                      const itemsToExport = items.map((item) => ({
+                        name: item.name,
+                        group: item.group,
+                        checked: item.checked,
+                      }));
+
+                      const a = document.createElement("a");
+                      const file = new Blob([JSON.stringify(itemsToExport)], {
+                        type: "application/json",
+                      });
+                      a.href = URL.createObjectURL(file);
+                      a.download = listId + ".json";
+                      a.click();
+                    }
+                    popupState.close();
+                  }}
+                >
+                  Export
+                </MenuItem>
               </Menu>
             </>
           )}

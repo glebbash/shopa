@@ -11,13 +11,26 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { MyListsPage } from "./pages/MainPage";
 import { ShoppingListPage } from "./pages/ShoppingListPage";
 import { _Page } from "./pages/_Page";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { amber } from "@mui/material/colors";
 
 const router = createRouter();
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#00695c",
+    },
+    secondary: amber,
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <CssBaseline />
-    <RouterProvider router={router} />
+    <ThemeProvider theme={theme}>
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </React.StrictMode>
 );
 

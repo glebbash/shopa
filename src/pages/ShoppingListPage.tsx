@@ -1,8 +1,7 @@
 import { useState } from "react";
+import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Link from "@mui/material/Link";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -15,12 +14,13 @@ import ListSubheader from "@mui/material/ListSubheader";
 import Fab from "@mui/material/Fab";
 import AddIcon from "@mui/icons-material/Add";
 import Collapse from "@mui/material/Collapse";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useLoaderData } from "react-router-dom";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Avatar from "@mui/material/Avatar";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import { ArrowDropDown, ArrowRight } from "@mui/icons-material";
 import PopupState, { bindTrigger, bindMenu } from "material-ui-popup-state";
 import _ from "lodash";
 
@@ -37,6 +37,15 @@ type OnItemAction = (
   action: "assign" | "check" | "rename" | "change-group" | "delete"
 ) => void;
 
+const StyledFab = styled(Fab)({
+  position: "absolute",
+  zIndex: 1,
+  top: -30,
+  left: 0,
+  right: 0,
+  margin: "0 auto",
+});
+
 export function ShoppingListPage() {
   const { user } = useSession();
   const listId = useLoaderData() as string;
@@ -51,7 +60,12 @@ export function ShoppingListPage() {
   );
 
   const [hideChecked, setHideChecked] = useLocalStorage(
-    `${listId}/hideCompleted`,
+    `${listId}/hideChecked`,
+    false
+  );
+
+  const [showAssigned, setShowAssigned] = useLocalStorage(
+    `${listId}/showAssigned`,
     false
   );
 
@@ -119,12 +133,24 @@ export function ShoppingListPage() {
     if (action === "delete") deleteItemDialog.setOpen(true);
   };
 
+  let filteredItems = items;
+  if (filteredItems) {
+    if (hideChecked) {
+      filteredItems = filteredItems.filter((item) => !item.checked);
+    }
+
+    if (showAssigned) {
+      filteredItems = filteredItems.filter(
+        (item) => item.assigned_to == user.user_metadata.picture
+      );
+    }
+  }
+
   const itemViews = createItems(
-    items,
+    filteredItems,
     onItemAction,
     hiddenGroups,
-    setHiddenGroups,
-    hideChecked
+    setHiddenGroups
   );
 
   return (
@@ -135,97 +161,109 @@ export function ShoppingListPage() {
         minHeight: 0,
       }}
     >
-      <Box display="flex" flexDirection="row" sx={{ m: 2 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <Link underline="hover" color="inherit" href="/">
-            Lists
-          </Link>
-          <Typography color="text.primary">
-            {data?.name ?? "loading..."}
-          </Typography>
-        </Breadcrumbs>
-        <Box flexGrow="1"></Box>
-        <PopupState variant="popover">
-          {(popupState) => (
-            <>
-              <IconButton
-                edge="end"
-                aria-label="more"
-                {...bindTrigger(popupState)}
-              >
-                <MoreVertIcon />
-              </IconButton>
-
-              <Menu {...bindMenu(popupState)}>
-                <MenuItem
-                  onClick={() => {
-                    items?.map((item) =>
-                      updateItem({ ...item, checked: true })
-                    );
-                    popupState.close();
-                  }}
-                >
-                  Check all
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    items?.map((item) =>
-                      updateItem({ ...item, checked: !item.checked })
-                    );
-                    popupState.close();
-                  }}
-                >
-                  Invert checked
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setHideChecked(!hideChecked);
-                    popupState.close();
-                  }}
-                >
-                  {!hideChecked ? "Hide checked" : "Show checked"}
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    if (items) {
-                      const itemsToExport = items.map((item) => ({
-                        name: item.name,
-                        group: item.group,
-                        checked: item.checked,
-                      }));
-
-                      const a = document.createElement("a");
-                      const file = new Blob([JSON.stringify(itemsToExport)], {
-                        type: "application/json",
-                      });
-                      a.href = URL.createObjectURL(file);
-                      a.download = listId + ".json";
-                      a.click();
-                    }
-                    popupState.close();
-                  }}
-                >
-                  Export
-                </MenuItem>
-              </Menu>
-            </>
-          )}
-        </PopupState>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          pb: "50px",
+        }}
+      >
+        {itemViews}
       </Box>
 
-      {itemViews}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ position: "absolute", bottom: 16, right: 16 }}
-        onClick={() => createItemDialog.setOpen(true)}
-      >
-        <AddIcon />
-      </Fab>
-      <CreateItemDialog {...createItemDialog} />
-      <InputDialog {...renameItemDialog} />
-      <ChangeGroupDialog {...changeItemGroupDialog} />
-      <InputDialog {...deleteItemDialog} />
+      <AppBar position="fixed" color="primary" sx={{ top: "auto", bottom: 0 }}>
+        <Toolbar>
+          <Typography color="inherit">{data?.name ?? "loading..."}</Typography>
+          <StyledFab
+            color="secondary"
+            aria-label="add"
+            onClick={() => createItemDialog.setOpen(true)}
+          >
+            <AddIcon />
+          </StyledFab>
+          <Box sx={{ flexGrow: 1 }} />
+          <PopupState variant="popover">
+            {(popupState) => (
+              <>
+                <IconButton
+                  color="inherit"
+                  edge="end"
+                  aria-label="more"
+                  {...bindTrigger(popupState)}
+                >
+                  <MoreVertIcon />
+                </IconButton>
+
+                <Menu {...bindMenu(popupState)}>
+                  <MenuItem
+                    onClick={() => {
+                      setShowAssigned(!showAssigned);
+                      popupState.close();
+                    }}
+                  >
+                    {!showAssigned ? "Show assigned" : "Show all"}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setHideChecked(!hideChecked);
+                      popupState.close();
+                    }}
+                  >
+                    {!hideChecked ? "Hide checked" : "Show checked"}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      items?.map((item) =>
+                        updateItem({ ...item, checked: true })
+                      );
+                      popupState.close();
+                    }}
+                  >
+                    Check all
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      items?.map((item) =>
+                        updateItem({ ...item, checked: !item.checked })
+                      );
+                      popupState.close();
+                    }}
+                  >
+                    Invert checked
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      if (items) {
+                        const itemsToExport = items.map((item) => ({
+                          name: item.name,
+                          group: item.group,
+                          checked: item.checked,
+                        }));
+
+                        const a = document.createElement("a");
+                        const file = new Blob([JSON.stringify(itemsToExport)], {
+                          type: "application/json",
+                        });
+                        a.href = URL.createObjectURL(file);
+                        a.download = listId + ".json";
+                        a.click();
+                      }
+                      popupState.close();
+                    }}
+                  >
+                    Export
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
+          </PopupState>
+        </Toolbar>
+        <CreateItemDialog {...createItemDialog} />
+        <InputDialog {...renameItemDialog} />
+        <ChangeGroupDialog {...changeItemGroupDialog} />
+        <InputDialog {...deleteItemDialog} />
+      </AppBar>
     </Box>
   );
 }
@@ -234,15 +272,10 @@ function createItems(
   items: Item[] | undefined,
   onAction: OnItemAction,
   hiddenGroups: Set<string>,
-  setHiddenGroups: (hiddenGroups: Set<string>) => void,
-  hideCompleted: boolean
+  setHiddenGroups: (hiddenGroups: Set<string>) => void
 ) {
   if (!Array.isArray(items)) {
     return "loading...";
-  }
-
-  if (hideCompleted) {
-    items = items.filter((item) => !item.checked);
   }
 
   const sortedAndGrouped = Object.entries(
@@ -250,6 +283,10 @@ function createItems(
   );
 
   const listItems = sortedAndGrouped.map(([groupName, items]) => {
+    const sortedItems = _.sortBy(
+      _.orderBy(_.sortBy(items, "name"), "assigned_to", "desc"),
+      "checked"
+    );
     return (
       <ItemGroup
         key={groupName}
@@ -257,10 +294,7 @@ function createItems(
           hiddenGroups,
           setHiddenGroups,
           groupName,
-          items: _.sortBy(
-            _.orderBy(_.sortBy(items, "name"), "assigned_to", "desc"),
-            "checked"
-          ),
+          items: sortedItems,
           onAction,
         }}
       />
@@ -290,6 +324,10 @@ type ItemGroupProps = {
   onAction: OnItemAction;
 };
 
+const StyledListSubHeader = styled(ListSubheader)(({ theme }) => ({
+  backgroundColor: theme.palette.background.default,
+}));
+
 function ItemGroup({
   hiddenGroups,
   setHiddenGroups,
@@ -315,13 +353,18 @@ function ItemGroup({
 
   return (
     <Box>
-      <ListSubheader>
+      <StyledListSubHeader disableGutters>
         <ListItemButton onClick={() => setOpen(!open)} role={undefined} dense>
-          <ListItemText primary={groupName} />
+          <ListItemIcon>
+            {open ? <ArrowDropDown /> : <ArrowRight />}
+          </ListItemIcon>
+          <ListItemText
+            primary={groupName}
+            primaryTypographyProps={{ variant: "body1" }}
+          />
           {items.filter((i) => i.checked).length}/{items.length}
-          {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </ListItemButton>
-      </ListSubheader>
+      </StyledListSubHeader>
       <Collapse in={open} timeout="auto" unmountOnExit>
         {childItems}
       </Collapse>
@@ -336,61 +379,55 @@ type ItemProps = {
 
 function ItemView({ item, onAction }: ItemProps) {
   const labelId = `checkbox-list-label-${item.id}`;
+  const morePopup = (
+    <PopupState variant="popover">
+      {(popupState) => (
+        <>
+          <IconButton edge="end" aria-label="more" {...bindTrigger(popupState)}>
+            <MoreVertIcon />
+          </IconButton>
+
+          <Menu {...bindMenu(popupState)}>
+            <MenuItem
+              onClick={() => {
+                onAction(item, "assign");
+                popupState.close();
+              }}
+            >
+              {item.assigned_to == null ? "Assign" : "Unassign"}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onAction(item, "rename");
+                popupState.close();
+              }}
+            >
+              Rename
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onAction(item, "change-group");
+                popupState.close();
+              }}
+            >
+              Change group
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                onAction(item, "delete");
+                popupState.close();
+              }}
+            >
+              Delete
+            </MenuItem>
+          </Menu>
+        </>
+      )}
+    </PopupState>
+  );
 
   return (
-    <ListItem
-      secondaryAction={
-        <PopupState variant="popover">
-          {(popupState) => (
-            <>
-              <IconButton
-                edge="end"
-                aria-label="more"
-                {...bindTrigger(popupState)}
-              >
-                <MoreVertIcon />
-              </IconButton>
-
-              <Menu {...bindMenu(popupState)}>
-                <MenuItem
-                  onClick={() => {
-                    onAction(item, "assign");
-                    popupState.close();
-                  }}
-                >
-                  {item.assigned_to == null ? "Assign" : "Unassign"}
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    onAction(item, "rename");
-                    popupState.close();
-                  }}
-                >
-                  Rename
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    onAction(item, "change-group");
-                    popupState.close();
-                  }}
-                >
-                  Change group
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    onAction(item, "delete");
-                    popupState.close();
-                  }}
-                >
-                  Delete
-                </MenuItem>
-              </Menu>
-            </>
-          )}
-        </PopupState>
-      }
-      disablePadding
-    >
+    <ListItem secondaryAction={morePopup} disablePadding>
       <ListItemButton
         role={undefined}
         onClick={() => onAction(item, "check")}
@@ -404,6 +441,7 @@ function ItemView({ item, onAction }: ItemProps) {
             tabIndex={-1}
             disableRipple
             inputProps={{ "aria-labelledby": labelId }}
+            sx={{ pl: 1.5 }}
           />
         </ListItemIcon>
         {item.assigned_to && (
@@ -414,6 +452,7 @@ function ItemView({ item, onAction }: ItemProps) {
         <ListItemText
           id={labelId}
           primary={item.name}
+          primaryTypographyProps={{ variant: "body1" }}
           sx={{
             textDecoration: item.checked ? "line-through" : "default",
           }}

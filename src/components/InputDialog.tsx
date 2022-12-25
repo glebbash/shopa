@@ -8,9 +8,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 
 export { component as InputDialog };
-const component = Object.assign(InputDialog, {
-  useOptions,
-});
+const component = Object.assign(InputDialog, { useOptions });
 
 function useOptions({
   title = "Title",

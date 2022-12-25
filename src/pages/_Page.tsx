@@ -8,25 +8,7 @@ import { supabase } from "../lib/supabase";
 import { LoginPage } from "./LoginPage";
 
 export function _Page() {
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-
-      const urlBeforeLogin = localStorage.getItem("urlBeforeLogin");
-      if (urlBeforeLogin) {
-        localStorage.removeItem("urlBeforeLogin");
-        location.href = urlBeforeLogin;
-      }
-    });
-
-    return data.subscription.unsubscribe;
-  }, []);
+  const session = useCreateSession();
 
   if (!session) return <LoginPage />;
 
@@ -52,4 +34,28 @@ export function _Page() {
       </Box>
     </SessionContext.Provider>
   );
+}
+
+function useCreateSession() {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+
+      const urlBeforeLogin = localStorage.getItem("urlBeforeLogin");
+      if (urlBeforeLogin) {
+        localStorage.removeItem("urlBeforeLogin");
+        location.href = urlBeforeLogin;
+      }
+    });
+
+    return data.subscription.unsubscribe;
+  }, []);
+
+  return session;
 }
